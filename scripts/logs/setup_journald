@@ -1,0 +1,69 @@
+#!/bin/bash
+
+#systemd-journald est déjà installé par défaut sur la plupart des systèmes Linux.
+
+#On modifie la configuration de systemd-journald qui se trouve dans /etc/systemd/journald.conf
+
+echo "
+# Compress=yes => Permet de compresser les messages avant même de les écrire dans le fichier
+# Forwards => CHERCHER PLUS D'INFOS POUR CET ELEMENT !
+# MaxRetentionSec=1month => Garde les logs sur une durée de 1 mois
+# RateLimitBurst=10000 => Garde un maximum de 10000 logs (même s'ils ont moins d'un mois), dans le cas ou il y aura + de 10000 logs, cela supprime les plus anciens.
+# Storage=persistent => Stock les logs dans le répertoire /var/log/journal
+# SyncIntervalSec=1s => Le délai de synchronisation des alertes de type ERR, WARNING, NOTICE et DEBUG, C’EST PEUT ETRE BEAUCOUP !
+# Note => Les autres erreurs (CRIT, ALERT, EMERG) se synchronisent automatiquement.
+# SystemMaxUse=4G => La taille maximum que peut avoir le fichier qui stocke les logs (par défaut c'est 8G).
+# SystemMaxFilesSize=10M => La taille maximale pour un journal individuel dans /var/log/journal
+
+
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+#
+# Entries in this file show the compile time defaults.
+# You can change settings by editing this file.
+# Defaults can be restored by simply deleting this file.
+#
+# See journald.conf(5) for details.
+
+[Journal]
+#Storage=persistent
+#Compress=yes
+#Seal=yes
+#SplitMode=uid
+#SyncIntervalSec=1s
+#RateLimitIntervalSec=30s
+#RateLimitBurst=10000
+#SystemMaxUse=4G
+#SystemKeepFree=
+#SystemMaxFileSize=10M
+#SystemMaxFiles=100
+#RuntimeMaxUse=
+#RuntimeKeepFree=
+#RuntimeMaxFileSize=
+#RuntimeMaxFiles=100
+#MaxRetentionSec=1month
+#MaxFileSec=1month
+#ForwardToSyslog=yes
+#ForwardToKMsg=no
+#ForwardToConsole=no
+#ForwardToWall=yes
+#TTYPath=/dev/console
+#MaxLevelStore=debug
+#MaxLevelSyslog=debug
+#MaxLevelKMsg=notice
+#MaxLevelConsole=info
+#MaxLevelWall=emerg
+#LineMax=48K
+#ReadKMsg=yes
+#Audit=no
+" > /etc/systemd/journald.conf
+
+#On donne les permissions nécessaires au fichier journald.conf si ce n'est pas déjà le cas
+chmod 644 /etc/systemd/journald.conf
+
+#On redémarre le service journald pour prendre en compte les nouveaux paramètres 
+systemctl restart systemd-journald.service

@@ -1,0 +1,118 @@
+#!/bin/bash
+
+apt update
+if [[ $(apt install -y bind9) ]]; then
+	echo "Installation bind9 OK"
+else
+	echo "Installation bind9 ERROR"
+fi
+
+if [[ $(echo "//
+// Do any local configuration here
+//
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include \"/etc/bind/zones.rfc1918\";
+
+
+zone \"utils\" {
+        type master;
+        file \"/etc/bind/db.utils\";
+};
+
+zone \"admin\" {
+        type master;
+        file \"/etc/bind/db.admin\";
+};
+
+
+zone \"user\" {
+        type master;
+        file \"/etc/bind/db.user\";
+};
+
+zone \"dmz\" {
+        type master;
+        file \"/etc/bind/db.dmz\";
+};">/etc/bind/named.conf.local) ]]; then
+	echo "fichier de configuration principale OK"
+fi
+
+# fichier de configuration de la zone utils.
+if [[ !$(echo "\$TTL    86400
+@       IN      SOA     dns.utils. root.utils. (
+                        2303231111      ; numéro de serie
+                        28800           ; delai de rafraichissement
+                        7200            ; delai de réessai
+                        604800          ; delai d'expiration
+                        86400           ; TTL
+)
+
+@       IN      NS      dns.utils.
+
+dns     IN      A       192.168.0.2
+
+log     IN      A       192.168.0.3
+
+files   IN      A       192.168.0.4">/etc/bind/db.utils) ]]; then
+	echo "fichier de configuration zone utils OK"
+fi
+
+# fichier de configuration de la zone admin.
+if [[ !$(echo "\$TTL    86400
+@       IN      SOA     dns.utils. root.utils.(
+                        2703231016    ; numéro de série
+                        28800           ; délai de rafraichissement
+                        7200            ; délai de réessai
+                        604800          ; délai d'expiration
+                        86400           ; TTL
+)
+
+@       IN      NS      dns.utils.
+
+dns     IN      A       192.168.0.2
+
+dhcp	IN	A	192.168.1.2">/etc/bind/db.admin) ]]; then
+	echo "fichier de configuration zone admin OK"
+fi
+
+
+# fichier de configuration de la zone user.
+if [[ !$(echo "\$TTL    86400
+@       IN      SOA     dns.utils. root.utils. (
+                        2703231003      ; numéro de serie
+                        28800           ; delai de rafraichissement
+                        7200            ; delai de réessai
+                        604800          ; delai d'expiration
+                        86400           ; TTL
+)
+
+@       IN      NS      dns.utils.
+
+dns     IN      A       192.168.0.2
+dhcp	IN	A	192.168.1.66">/etc/bind/db.user) ]]; then
+	echo "fichier de configuration zone user OK"
+fi
+
+
+
+# fichier de configuration de la zone dmz.
+if [[ !$(echo "\$TTL    86400
+@       IN      SOA     dns.utils. root.utils. (
+                        2703231021      ; numéro de serie
+                        28800           ; delai de rafraichissement
+                        7200            ; delai de réessai
+                        604800          ; delai d'expiration
+                        86400           ; TTL
+)
+
+@       IN      NS      dns.utils.
+
+dns     IN      A       192.168.0.2
+
+bastionssh     IN      A       192.168.14.222
+web	IN	A	192.168.14.213
+bd	IN	A	192.168.14.213">/etc/bind/db.dmz) ]]; then
+	echo "fichier de configuration zone dmz OK"
+fi

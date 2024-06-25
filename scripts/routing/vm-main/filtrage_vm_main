@@ -1,0 +1,113 @@
+#!/usr/sbin/nft -f
+
+# script de configuration du parefeu de la vm-main
+# a exéctuer uniquement dans la vm-main
+# aucun parramètre nécessaire
+# besoin des priviléges root
+
+
+# on remarque que iptables travail sur le nombre de ligne ce
+# qui est plus sur, alors que nftables lui donne un id
+# a chaque nouvelle commande si jamais une regle est ajouté
+# avant que libvirt est créées les siennes alors le numéro
+# après le mot "handle" ne serra plus valide
+
+
+# ce code ci-dessous avec iptables permet de géré ce cas tout que les régles sous
+# ajouté après celles de libvirt
+
+# ------------------------ ip tables :
+    # suppréssion des régles reject
+    #iptables -D LIBVIRT_FWO 2
+    #iptables -D LIBVIRT_FWO 3
+    #iptables -D LIBVIRT_FWO 4
+
+    #iptables -D LIBVIRT_FWI 2
+    #iptables -D LIBVIRT_FWI 3
+    #iptables -D LIBVIRT_FWI 4
+    # affiche des régles (attention ça prend un petit peux de temps)
+    #iptables -L
+# -----------------------  NFT TABLES :
+# suppression des régles de reject créées par libvirt 
+delete rule filter LIBVIRT_FWO handle 52
+delete rule filter LIBVIRT_FWO handle 39
+delete rule filter LIBVIRT_FWO handle 26
+
+delete rule filter LIBVIRT_FWI handle 53
+delete rule filter LIBVIRT_FWI handle 40
+delete rule filter LIBVIRT_FWI handle 27
+
+# --- le but est que chaque paquets des 3 sous réseaux soient acceptés avant de passer par les régles de masquerade
+# acceptation sans nat de tout paquets venant de la machine main vers les 3 sous réseaux
+# vm-main -> admin|user|serveur
+insert rule nat LIBVIRT_PRT ip saddr 192.168.14.210 ip daddr 192.168.1.64/26 counter accept
+insert rule nat LIBVIRT_PRT ip saddr 192.168.14.210 ip daddr 192.168.0.0/24 counter accept
+insert rule nat LIBVIRT_PRT ip saddr 192.168.14.210 ip daddr 192.168.1.0/26 counter accept
+
+# admin|user|serveur -> vm-main
+insert rule nat LIBVIRT_PRT ip saddr 192.168.0.0/24 ip daddr 192.168.14.210 counter accept
+insert rule nat LIBVIRT_PRT ip saddr 192.168.1.0/26 ip daddr 192.168.14.210 counter accept
+insert rule nat LIBVIRT_PRT ip saddr 192.168.1.64/26 ip daddr 192.168.14.210 counter accept
+
+# acceptation vers le bastion ssh
+insert rule nat LIBVIRT_PRT ip daddr 192.168.14.222 counter masquerade
+
+# acceptation sans nat vers la dmz
+insert rule nat LIBVIRT_PRT ip daddr 192.168.14.213 counter accept
+
+
+
+# ----- configuration de LIBVIRT_INP
+    # paquets venant des 3 sous réseaux
+    add rule filter LIBVIRT_INP ip saddr 192.168.0.0/24 counter accept
+    add rule filter LIBVIRT_INP ip saddr 192.168.1.0/26 counter accept
+    add rule filter LIBVIRT_INP ip saddr 192.168.1.64/26 counter accept
+
+    # paquets venant du bastion
+    add rule filter LIBVIRT_INP ip saddr 192.168.14.222 counter accept
+    add rule filter LIBVIRT_INP ip saddr 192.168.14.213 tcp dport 80 counter accept
+
+    add rule filter LIBVIRT_INP ip daddr 192.168.0.0/24 counter accept
+    add rule filter LIBVIRT_INP ip daddr 192.168.1.0/26 counter accept
+    add rule filter LIBVIRT_INP ip daddr 192.168.1.64/26 counter accept
+
+    # limitation  des protocol icmp et udp
+    add rule filter LIBVIRT_INP ip protocol icmp icmp type echo-request limit rate 5/second counter accept
+    add rule filter LIBVIRT_INP ip protocol udp limit rate 5/second counter accept
+    
+    # acceptation des connexions existantes
+    add rule filter LIBVIRT_INP ct state established counter accept
+    
+    # rejet de tout les autre paquets
+    add rule filter LIBVIRT_INP counter drop
+
+
+# -----configuration de LIBVIRT_OUT
+    # acceptation des paquets venant des 3 sous réseaux
+    add rule filter LIBVIRT_OUT ip saddr 192.168.0.0/24 counter accept
+    add rule filter LIBVIRT_OUT ip saddr 192.168.1.0/26 counter accept
+    add rule filter LIBVIRT_OUT ip saddr 192.168.1.64/26 counter accept
+
+    # acceptation des paquets venant de la dmz et du bastion ssh
+    add rule filter LIBVIRT_OUT ip saddr 192.168.14.222 counter accept
+    add rule filter LIBVIRT_OUT ip saddr 192.168.14.213 counter accept
+
+    # drop tout les autres
+    add rule filter LIBVIRT_OUT counter accept
+
+# ------- régles améliorables (pas assez restrictive) :
+    add rule filter LIBVIRT_FWO counter accept
+    add rule filter LIBVIRT_FWI counter accept
+    add rule filter LIBVIRT_FWX counter accept
+
+    # besoin pour le dns
+    add rule filter FORWARD counter accept
+
+
+# Pour que la dmz ai accès au dns
+insert rule nat LIBVIRT_PRT ip saddr 192.168.14.213 counter masquerade
+insert rule nat LIBVIRT_PRT ip daddr 192.168.14.213 counter masquerade
+
+# Pour que le bastion ssh ai accès au dns
+insert rule nat LIBVIRT_PRT ip saddr 192.168.14.222 counter masquerade
+insert rule nat LIBVIRT_PRT ip daddr 192.168.14.222 counter masquerade

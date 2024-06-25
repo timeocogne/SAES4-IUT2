@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Script destiné à la récupération de l'image iso de debian 11.6.0
+# La vérification des sha512sums est pris en charge
+
+# Ce script doit être exécuté dans le répertoire Wiki-SAES4/scripts et télécharge l'image ISO
+# dans le répertoire ressources/images-ISO
+
+# si le script n'est pas exécuté dans le répertoire scripts alors arrêt et affichage msg erreur
+if [[ ${PWD##*/} != "scripts" ]]; then
+    echo "Ce script doit être lancé depuis le répertoire Wiki-SAES4/scripts"
+    exit 1
+fi
+
+# exécution du reste des instructions directement dans le répertoire images-ISO
+cd ../ressources/images-ISO/ || return
+
+# Nous avons choisi de télécharger l'image plutôt que de la récupérer d'un serveur ftp à chaque
+# installation de machine, car c'est plus rapide et ne nécessite qu'un seul téléchargement
+
+image_iso="debian-11.6.0-amd64-netinst.iso"
+depot="https://cdimage.debian.org/debian-cd/11.6.0/amd64/iso-cd"
+checkfile=SHA512SUMS
+
+# si l'image n'existe pas déjà alors on la télécharge
+if [[ ! -e ${image_iso} ]]; then
+    wget "${depot}/${image_iso}"
+else
+    echo "Image iso déjà téléchargée."
+fi
+
+# si le fichier SHA512SUMS existe déjà on le supprime puis le télécharge pour être sûr qu'aucune modification n'a été apportée entre temps
+if [[ -e "${checkfile}" ]]; then
+    rm "${checkfile}"
+fi
+wget "${depot}/${checkfile}"
+
+# le fichier checksums contient les empreintes de 3 images différentes, l'image que nous avons téléchargé se trouve sur la première ligne, 
+# on ne garde donc que cette ligne dans le fichier
+echo "$(cat SHA512SUMS | head -n 1)" > ${checkfile}
+
+# Vérification du checksum
+res=$(sha512sum -c "${checkfile}")
+
+# si le checksum est invalide on supprime l'image pour ne pas pouvoir s'en servir
+if [[ ${res} == "${image_iso}: OK" ]]; then
+    echo -e "\e[32mSHA512SUMS : L'image ISO est valide.\e[0m"
+else
+    rm "${image_iso}"
+    echo -e "\e[31mSHA512SUMS : L'image ISO n'est pas valide et a été supprimée.\e[0m"
+fi
+
+# suppression du fichier checksum à la fin de la vérification
+rm "${checkfile}"

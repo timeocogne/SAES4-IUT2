@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# version voulue de zabbix
+zabbix_version="zabbix-release_6.4-1+debian11_all.deb"
+
+# repertoire où obtenir la version voulue de zabbix
+zabbix_repo="https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/${zabbix_version}"
+
+# télécharger et installer le dépôt Zabbix
+wget "${zabbix_repo}"
+dpkg -i zabbix-release_*
+rm zabbix-release_*
+
+# installation de postgresql et sudo s'ils ne sont pas déjà installés
+# installation des services Zabbix
+apt update
+apt install -y postgresql sudo
+apt install -y zabbix-server-pgsql zabbix-frontend-php php7.4-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-agent
+
+# création d'un utilisateur zabbix et d'une base de donnée zabbix
+echo "Création d'un utilisateur zabbix pour PostgreSQL : choisissez un mot de passe sûr et retenez le."
+sudo -u postgres createuser --pwprompt zabbix
+sudo -u postgres createdb --owner=zabbix zabbix
+
+# paramétrage et population de la base de données zabbix
+zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u zabbix psql zabbix
+
+systemctl reload apache2.service
+systemctl restart zabbix-server zabbix-agent apache2
+
+# dans /etc/zabbix/zabbix-server.conf : DBPassword=password
+echo "--------------------------------------------------------------------------------"
+echo -e "Modifiez le fichier /etc/zabbix/zabbix_server.conf, sous l'option \"DBPassword\" entrez :\n	DBPassword=password\noù password est votre mot de passe saisi pour l'utilisateur zabbix de PostgreSQL"
+echo "Puis redémarrez le service Zabbix : systemctl restart zabbix-server.service"
+echo "--------------------------------------------------------------------------------"

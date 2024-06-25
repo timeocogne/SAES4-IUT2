@@ -1,0 +1,35 @@
+#!/bin/bash
+# Création d'une interface bridge
+ip link add br0 type bridge
+
+# pour chaque utilisateur dans le groupe admin (nos 4 logins) 
+# créé 5 interfaces liéé au réseau avec les serveurs
+compteur=1
+for user in $(grep '^admin:' /etc/group | cut -d: -f4 | tr ',' ' ')
+do
+	gid=$(getent group "${user}" |cut -d: -f3)
+	echo "Groupe ${user} GID ${gid}"
+	for i in $(seq "${compteur}" $((compteur+5)))
+	do
+        	interface="tap${i}"
+        	echo "${i} : ${interface} "
+		# vérification que l'interface n'est pas déjà créé
+        	if ip addr | grep "${interface}"
+        	then
+                	echo "Déjà configuré"
+        	else
+		#création de l'interface
+                tunctl -u "${gid}" -t "${interface}"
+		#configuration de l'interface
+                ifconfig "${interface}" 0.0.0.0 up
+                #liaison de l'interface au réseau virbr1 : vlanserveur
+		brctl addif virbr1 "${interface}"
+        fi
+	done
+	compteur=$((compteur+5))
+done
+
+
+
+
+

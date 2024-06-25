@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Ce script a pour vocation la configuration du répertoire personnel d'un utilisateur ainsi que de l'espace partge.
+# va créer le point de montage de l'espace partae, va créer le fichier  mot de passe pour l'instant stocké en clair dans le répertoire personnel de root
+# crée un utilisateur si celui-ci n'est pasdeja cree puis va ajouter les points de montages du repertoire personnel et de l'espace partage.
+
+
+if [[ $# -ne 1 ]]; then
+	echo "Vous devez mettre uniquement un paramètre soit'admin' soit 'user'"
+else
+	param="$1"
+	param=$(echo "${param}" |  tr '[:upper:]' '[:lower:]')
+	if [[ ("${param}" != "admin") && ("${param}" != "user") ]]; then
+		echo "Seul les parametre 'admin' et 'user' sont accepte"
+	else
+# On met à jour la machine
+		apt update -y
+# On installe samba-client et cifs-utils
+		apt install smbclient -y
+		apt install cifs-utils -y
+
+# Création du répetoire partagé si inexistant
+		if [[ ! -e /mnt/"${param}"shared ]];
+		then
+		        mkdir /mnt/"${param}"shared
+		        echo "répertore /mnt/${param}shared a été créé"
+		else
+			echo "répertoie /mnt${param}shared deja present OK"
+		fi
+
+# Saisie du nom d'utilisateur samba par l'utilisateur
+		echo -n "Veuillez rentrer le nom de votre ${param} samba: "
+		read -r nom
+
+# Saisie du mot de passe par l'utilisateur sans affichage de celui-ci lors de la saisie
+		echo -n "Veuillez rentrer le mot de passe de votre ${param} samba: "
+		trap "stty echo" EXIT HUP INT QUIT
+		stty -echo
+		read -r mdp
+		stty echo
+		trap - EXIT HUP INT QUIT
+		echo ""
+
+# écritrer du fichier de mot de passe
+		echo "username=${nom}
+		password=${mdp}" > /root/.smbcredentials"${nom}"
+
+# Création de l'utilisateur si celui n'existe pas et création de son répertoire personnel
+		if [[ -n $(id "${nom}" &> /dev/null) ]]; then
+			echo "${param}" "${nom} existe deja OK"
+		else
+			echo "Créaton de l'utilisateur${nom}:"
+			useradd -M -d /home/"${nom}" -p "${mdp}" "${nom}"
+			if [[ ! -e /home/"${nom}" ]]; then
+				mkdir /home/"${nom}"
+				chown "${nom}":"${nom}" /home/"${nom}"
+				chmod 770 /home/"${nom}"
+				echo "repertoire personnel cree"
+			else
+				echo "le repertoire /home/${nom} existe deja"
+			fi
+		fi
+
+		# on change le fichier de configuration de /etc/fstab afin d'avoir accés en permanence au serveur samba
+		# création d'un fichier de backup
+		if [[ ! -e /etc/fstab_backup ]]; then
+			cp /etc/fstab /etc/fstab_backup
+			echo "Création du fichier /et/fstab_backup OK"
+		fi
+
+
+# On change le fichier /etc/fstab si il n'ypas déjà été changé
+		if  ! grep "$(id -u "${nom}")" /etc/fstab &> /dev/null ;then
+			echo "//192.168.0.4/${param}share /mnt/${param}shared cifs credentials=/root/.smbcredentials${nom},uid=$(id "${nom}" -u),gid=$(id "${nom}" -g) 0 0
+			//192.168.0.4/homes /home/${nom} cifs credentials=/root/.smbcredentials${nom},uid=$(id "${nom}" -u),gid=$(id "${nom}" -g) 0 0" >> /etc/fstab
+			echo "Fichier de configuration /etc/fstab changé OK"
+		else
+			echo "Le fichier de configuration /etc/fstab a déjà été modifié pas de changement OK"
+		fi
+
+
+# on actualise afin de prendre en compte les modifications faits dans /etc/fstab
+		mount -a
+	fi
+fi

@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Script qui a pour vocation la création et la configuration d'un compte samba soit d'administrateur soit utilisateur
+
+# fonction qui va renvoyer le nom des différents groupe que doivent posséder un utilisateur en fonction du role voulu
+function fonctionGroupe() {
+	role="$1"
+
+	if [[ "${role}" == "admin" ]]; then
+		echo "sambashare,adminshare"
+	else
+		echo "sambashare"
+	fi
+}
+
+
+if [[ "$#" -ne 2 ]]; then
+	echo "Veuillez rentrer 2 paramètres: le type d'utilisateur [ ADMIN | USER ] puis le nom de l'utilisateur samba que vous voulez ajouter!"
+else
+	name="$2"
+	# On recupere le 1er parametre et on le met en minuscule
+	role="$1"
+	role=$(echo "${role}" |  tr '[:upper:]' '[:lower:]')
+	# on vérifie que le 1er parametre correspond bien 
+	if [[ ("${role}" != "admin") && ("${role}" != "user") ]]; then
+		echo "Seul 'admin' et 'user' sont accepte pour le 1er parametre"
+	else
+
+# Vérification de la présence de l'utilisateur $name
+        	if [[ -n $(id "${name}" &> /dev/null) ]]; then
+       			echo "l'utilisateur ${name} existe déjà"
+       		else
+			useradd -M -d /samba/"${name}" -s /usr/sbin/nologin -G "$(fonctionGroupe "$1")" "${name}"
+		        echo "Création de l'admin ${name} OK"
+	        	if [[ ! -e /samba/"${name}" ]]; then
+	        	        mkdir /samba/"${name}"
+	                	echo "répertoire /samba/${name} créé"
+	        	else
+			        echo "répertoire /samba/${name} déjà présent OK"
+	        	fi
+# Ajout des bonnnes permissions pour le répertoire personnel
+		        chown "${name}":"${name}" /samba/"${name}"
+		        chmod 2770 /samba/"${name}"
+	        	echo "Création du répertoire personnel de ${name} OK"
+# Ajout d'un mot de passe samba pour l'utilisateur
+	        	smbpasswd -a "${name}"
+# Activation du mot de passe de l'utilisateur
+	        	smbpasswd -e "${name}"
+	        	echo "Utilisateur ${name} activé OK"
+        	fi
+	fi
+fi
+
+

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+
+# l'option --no-pager permet d'afficher les messages de systemctl
+# comme un echo , sans avoir besoin de "q" pour retourner sur le terminal
+# la redirection vers /dev/null permet de ne pas afficher dutout les messages
+# de systemctl
+if systemctl status --no-pager apache2 >/dev/null
+then
+	echo "Le service apache2 est actif"
+else
+	echo "Le service apache2 n'existe pas ou il n'est pas actif"
+fi
+
+

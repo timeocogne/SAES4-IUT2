@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Script permettant de proposer un menu à l'utilisateur qui lui permet d'executer un ou plusieurs scripts de tests sur la vm-main
+
+# Fonction pour afficher le menu
+function menu {
+  echo "------------------------------------------------"
+  echo "Quel(s) script(s) de test voulez-vous éxecuter: "
+  echo "1. Test de connectivité"
+  echo "2. Test de disponibilité DNS"
+  echo "3. Test du pare-feu"
+  echo "4. Lancer tous les tests à la suite"
+  echo "0. Quitter le menu."
+  echo "------------------------------------------------"
+  echo "Entrez un numéro entre 0 et 4 : "
+}
+
+# Affichage du menu
+menu
+
+# Lecture de l'entrée utilisateur
+read -r choix
+
+# Boucle pour traiter les choix
+while [ $choix -ne 0 ]
+do
+  case $choix in
+    1)
+      # Exécution du script de connectivité
+      source ../tests/connectivite/test-connectivite
+      ;;
+    2)
+      # Exécution du script de disponibilité
+      source ../tests/disponibilite/test-disponibilite-dns
+      ;;
+    3)
+      # Exécution du script de pare-feu
+      echo "Non implémenté actuellement"
+      ;;
+    4)
+      # Exécution des 3 scripts de test
+      source ../tests/connectivite/test-connectivite
+      source ../tests/disponibilite/test-disponibilite-dns
+      ;;
+    *)
+      echo "Choix invalide !"
+      ;;
+  esac
+
+  # Affichage du menu
+  menu
+
+  # Lecture de l'entrée utilisateur
+  read choix
+done
+

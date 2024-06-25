@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo "vérification des zones dns:"
+#vérification de tout les fichiers de configuration de zone DNS avec l'outil "named-checkzone"
+
+named-checkzone dmz /etc/bind/db.dmz
+
+named-checkzone utils /etc/bind/db.utils
+
+named-checkzone user /etc/bind/db.user
+
+named-checkzone admin /etc/bind/db.admin
+
+echo "vérification de la configuration du dns:"
+#vérifiaction des fichiers de configuraton du DNS avec l'outil "named-checkconf"
+
+if [[ $(named-checkconf /etc/bind/named.conf.options) ||$(named-checkconf /etc/bind/named.conf) ]]; then
+echo "ERROR"
+else
+echo "OK"
+fi

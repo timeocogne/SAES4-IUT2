@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#Ce script permet de nous créer des utilisateurs avec nos logins en mettant le meme mdp sur les logins
+#Il faut bien évidemment changer le mot de passe soit meme directement après usage du script
+
+useradd -m cognetim
+echo "cognetim:cognetim" | chpasswd
+
+useradd -m piconf
+echo "piconf:piconf" | chpasswd
+
+useradd -m fruchame
+echo "fruchame:fruchame" | chpasswd
+
+useradd -m bourguja
+echo "bourguja:bourguja" | chpasswd
+
+echo "---------------------------------------"
+echo " Les utilisateurs ont bien été créés   "
+echo " ATTENTION - Votre mdp est aussi reset "
+echo " Les logins/mdp ont la forme suivante  "
+echo "           login:login                 "
+echo " Pensez à le changer dès que possible.  "
+echo "---------------------------------------"

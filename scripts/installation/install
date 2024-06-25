@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Script destiné à la création d'une machine virtuelle 
+
+
+#if [ -z "$1" ]
+#then
+#	echo "le nom n'est pas valide"
+#	exit 1
+#fi
+
+#if ! [[ "$2" =~ ^[0-9]+$ ]]; then
+#  echo "Erreur: Le deuxième argument doit être un entier."
+#  exit 1
+#fi
+
+nom="$1"
+echo "$nom"
+echo $2
+case $2 in
+         serveur)
+            vlan="vlan"$2
+         ;;
+
+         admin)
+            vlan="vlan"$2
+         ;;
+
+         user)
+            vlan="vlan"$2
+         ;; 
+         *)
+         echo "Usage: $2 { serveur | admin | user }"
+         exit 1
+         ;;
+esac
+
+
+
+
+
+# desctruction de la machine si elle existe déjà
+virsh destroy "$nom"
+virsh undefine "$nom"
+
+# création du fichier pressed
+
+
+# Communication à l'utilisateur avant installation
+echo -e "\n--------------------------------------------------------------------------------"
+echo "Lors de l'installation, il vous sera demandé de saisir vous mêmes le mot de passe administrateur, le nom complet et nom d'utilisateur de l'utilisateur de base, ainsi que le mot de passe utilisateur."
+echo -e "\nPensez à saisir des mots de passe sécurisés et dont vous vous souviendrez."
+echo "--------------------------------------------------------------------------------"
+echo -e "\nAppuyez sur une touche quelconque pour commencer l'installation"
+read -r
+echo "L'installation va commencer."
+
+# installation de la machine utilisateur via virt-install
+virt-install \
+        --name "$nom" \
+        --vcpus=4 \
+        --ram=4096 \
+        --location="/var/lib/libvirt/images/debian-11.6.0-amd64-netinst.iso" \
+        --initrd-inject=preseed.cfg \
+        --extra-args="auto console=ttyS0,115200n8 serial" \
+        --graphics none \
+        --console pty,target_type=serial \
+        --extra-args="ks=file:/preseed.cfg" \
+    	--network network=$vlan \
+        --os-type=linux \
+        --os-variant=debian10 \
+        --disk=pool=default,size=4,format=qcow2,bus=virtio

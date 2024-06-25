@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# à exéctué sur la vm main
+# list des adresses ip des serveurs dhcp
+DHCP_LIST="192.168.1.2 192.168.1.66"
+#DHCP_LIST="192.168.1.66"
+# On démarre l'agent ssh
+eval "$(ssh-agent -s)"
+# On demande la passphrase du serveur pour pouvoir se connecter ensuite sans soucis à toutes les machines.
+ssh-add ~/.ssh/id_rsa
+
+for dhcp in $DHCP_LIST
+do
+    echo "----------------------------"
+    echo "Connexion à ${dhcp} ..."
+	#ssh "${dhcp}" 'systemctl status --no-pager isc-dhcp-server'
+	# l'option --no-pager permet d'afficher les messages de systemctl
+	# comme un echo , sans avoir besoin de "q" pour retourner sur le terminal
+	# la redirection vers /dev/null permet de ne pas afficher dutout les messages
+	# de systemctl
+	if $(ssh "${dhcp}" 'systemctl status --no-pager isc-dhcp-server >/dev/null')
+	then
+		echo -e "\e[32m Le service dhcp(isc-dhcp-server) est actif sur ${dhcp}\e[0m"
+	else
+		echo -e "\e[31m Sur ${dhcp} le service dhcp(isc-dhcp-server) n'existe pas ou il n'est pas actif\e[0m"
+	fi
+done
+

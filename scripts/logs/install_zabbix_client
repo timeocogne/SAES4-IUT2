@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Ce script permet d'installer le client zabbix pour pouvoir suivre la machine sur le serveur de logs.
+
+# Adresse ip du serveur de logs
+address="192.168.0.3"
+
+# Le chemin du fichier zabbix a modifier
+path="/etc/zabbix/zabbix_agentd.conf"
+
+# lien du fichier avec la version voulue du client zabbix
+version="6.4"
+zabbix_version="zabbix-release_${version}-1+debian11_all.deb"
+
+zabbix_repo="https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/${zabbix_version}"
+
+# Télécharger, installer + maj le repo zabbix sur la machine
+wget ${zabbix_repo}
+dpkg -i zabbix-release_*
+rm zabbix-release_*
+apt update
+
+# On installe l'agent zabbix
+apt install zabbix-agent -y
+
+# On demande à l'utilisateur le nom qu'il veut utiliser pour la machine
+echo "----------------------------------------"
+echo "Installation du client zabbix terminée"
+echo "Merci de saisir un nom pour la machine :"
+read -r hostname
+
+# On remplace donc dans le .conf avec les infos saisies
+sed -i "s/Server=127.0.0.1/Server=${address}/" ${path}
+sed -i "s/ServerActive=127.0.0.1/ServerActive=${address}/" ${path}
+sed -i "s/Hostname=Zabbix server/Hostname=${hostname}/" ${path}
+
+#On redémarre et active au démarrage l'agent Zabbix
+systemctl restart zabbix-agent
+systemctl enable zabbix-agent
+
+echo "-------------------------------------------------------------------"
+echo "La machine ${hostname} est bien configurée."
+echo "Vous pouvez désormais l'ajouter sur l'interface Zabbix serveur."
+echo "-------------------------------------------------------------------"
+

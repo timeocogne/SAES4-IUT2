@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# Ce script a pour but de simplifier la vérification des fichiers exécutables du projet
+# Ce script doit être exécuté dans le répertoire Wiki-SAES4/scripts
+
+# la sévérité souhaitée peut êter passée en 1er paramètre
+
+values_severity=('style' 'info' 'warning' 'error')
+severity="style"
+
+for sev in "${values_severity[@]}"
+do
+    if [[ "${sev}" == "$1" ]] ; then
+        severity="${sev}"
+    fi
+done
+
+# si le script n'est pas exécuté dans le répertoire scripts alors arrêt et affichage msg erreur
+if [[ ${PWD##*/} != "scripts" ]]; then
+    echo "Ce script doit être lancé depuis le répertoire Wiki-SAES4/scripts"
+    exit 1
+fi
+
+##############################################################################################
+# procédure récursive qui :
+#    - réalise une itération qui parcourt toutes les entrées du répertoire courant
+#       et pour chaque entrée :
+#           - si c'est un répertoire : se place dans ce répertoire et réalise un appel récursif
+#           - si c'est un fichier exécutable : affiche le nom de ce fichier et le passe au shellcheck : 
+#               affiche les erreurs s'il y en a, affiche OK sinon
+##############################################################################################
+function affiche() {
+for file in "$1"/*
+do
+        # la variable resultats_test contiendra la liste des tests et leur résultat, qui sera affichée à la fin
+        # le résultat est OK ou KO
+
+        # passe les fichiers exécutables au shellcheck
+        if [[ -x "${file}" ]] && [[ -f "${file}" ]]; then
+            # première vérification, permet de savoir s'il y a des erreurs
+            shellcheck -f quiet --enable=all --severity="${severity}" "${file}"
+
+            # affichage de OK si aucune erreur n'est trouvée
+            # sinon affichage des erreurs
+            if [[ "$?" == 0 ]]; then
+                resultats_tests+=("${file} : \e[32mOK\e[0m")
+            else
+                echo -e "\e[94m###############################################################################"
+                echo -e "Script : \e[0m${file}"
+                echo -e "\e[94m###############################################################################\e[0m"
+
+                # vérification shellcheck
+                # l'option --enable=all ajoute des vérifications supplémentaires (voir shellcheck --list-optional)
+                # la sévérité peut être passée en option du script
+                shellcheck --enable=all --severity="${severity}" "${file}"
+
+                resultats_tests+=("${file} : \e[31mKO\e[0m")
+
+                echo -e "\n\n"
+            fi
+        fi
+
+        # affichage récursif
+        if [[ -d "${file}" ]]; then
+            affiche "${file}"
+        fi
+done
+}
+
+
+# début de la procédure récursive
+affiche "$(pwd)" || true
+
+# affichage final
+echo -e "\e[94m###############################################################################"
+echo -e "#\e[0m Résultats des tests (severity = ${severity})"
+echo -e "\e[94m###############################################################################\e[0m"
+
+# affichage des tests
+for ligne in "${resultats_tests[@]}"; do
+  echo -e "${ligne}"
+done

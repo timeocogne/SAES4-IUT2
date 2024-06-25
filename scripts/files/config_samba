@@ -1,0 +1,30 @@
+[homes]
+    path = /samba/%S
+    comment = Home Directories
+    browseable = no
+    read only = no
+    create mask = 0700
+    directory mask = 0700
+    force create mode = 0700
+    force directory mode = 2700
+    valid users = %S, @adminshare
+
+[usershare]
+    path = /samba/usershare
+    browseable = no
+    read only = no
+    create mask = 0770
+    directory mask = 0770
+    force create mode = 0660
+    force directory mode = 2770
+    valid users = @sambashare, @adminshare
+
+[adminshare]
+    path = /samba/adminshare
+    browseable = no
+    read only = no
+    create mask = 0770
+    directory mask = 0770
+    force create mode = 0660
+    force directory mode = 2770
+    valid users = @adminshare

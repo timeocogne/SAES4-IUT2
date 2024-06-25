@@ -1,0 +1,61 @@
+#!/bin/bash
+
+#Ce script permet de configurer une base de données en postgres
+
+#On fait un test de apt pour s'assurer qu'il est apte à réaliser les maj de sécurité
+apt update; apt upgrade; apt clean
+
+#On installe php, apache et postgresql sur notre serveur
+apt install postgresql sudo -y
+apt install php -y
+
+#Si postgresql est déjà lancé, on le relance, et sinon on le démarre
+systemctl restart postgresql
+
+#En étant connecté avec l'user postgres, on créé la bdd et l'user
+echo "Entrez un mot de passe pour l'utilisateur postgres usertest : "
+sudo -u postgres createuser --pwprompt usertest
+sudo -u postgres createdb --owner=usertest testbdd
+
+# Création d'une fonction exécutant des requêtes SQL sur la BDD testbdd avec l'utilisateur usertest
+psql_exec() {
+  sql_cmd=$1
+  
+  sudo -u usertest psql --dbname=testbdd -c "${sql_cmd}"
+}
+
+#On créé une table de test 'contact'
+psql_exec "create table contact(
+id numeric(3) primary key,
+nom varchar(10),
+tel numeric(10),
+ville varchar(25));"
+
+#On insère des données dans la table 'contact'
+psql_exec "insert into contact values(1,'timeo', '0102030405', 'grenoble');"
+psql_exec "insert into contact values(2,'jaufret', '0102030405', 'grenoble');"
+psql_exec "insert into contact values(3,'felix', '0102030405', 'grenoble');"
+psql_exec "insert into contact values(4,'melian', '0102030405', 'grenoble');"
+
+#On donne ensuite les accès sur toute la base à l'utilisateur "usertest"
+psql_exec "GRANT SELECT, UPDATE, DELETE, INSERT on TABLE contact TO usertest;"
+
+#Une fois le serveur apache configuré, on donne les droits de la base "testbdd" pour l'utilisateur "usertest".
+echo "host    testbdd         usertest        0.0.0.0/0               md5" >> /etc/postgresql/13/main/pg_hba.conf
+
+#Donner les permissions à postgres pour éouter les connexions entrantes sur les IP disponibles
+#ici, le script fait écouter toutes les ip, remplacer l'étoile par une ip si besoin
+sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/13/main/postgresql.conf
+
+#On redémarre ensuite le service postgresql pour prendre en compte les paramètres.
+systemctl restart postgresql
+
+#On autorise ensuite le travic PostgreSQL dans le pare-feu nftables
+#Cela nécessite d'ouvrir le port 5432
+echo "add rule inet filter input tcp dport 5432 accept" >> /etc/nftables.conf
+
+#On configure apache2 pour qu'il puisse communiquer avec PostgreSQL
+apt install libapache2-mod-php7.4 php7.4-pgsql -y
+
+#On redémarre apache2 pour appliquer les changements
+systemctl restart apache2 

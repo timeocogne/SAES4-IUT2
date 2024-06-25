@@ -1,0 +1,54 @@
+#!/bin/bash
+
+addrDNS="192.168.0.2"
+
+# Fonction pour tester la connectivité
+
+test_disponibilite() {
+    echo -e "\e[34m Test de disponibilite pour le dns (${addrDNS}) \e[0m"
+    echo "-----------------------------"
+    echo "Test nslookup le réseau utilitaire:"
+    reseau="utils"
+    if nslookup dns."${reseau}" "${addrDNS}" >/dev/null && nslookup log."${reseau}" "${addrDNS}" >/dev/null && nslookup files."${reseau}" >/dev/null
+    then
+        echo -e "\e[32m   nslookup sur le réseau utilitaire(${reseau}) réussi \e[0m"
+    else
+        echo -e "\e[31m   nslookup sur le réseau utilitaire(${reseau})\e[5m échoué \e[0m"
+    fi
+    echo ""
+
+    echo "Test nslookup le réseau administrateur:"
+    reseau="admin"
+    if nslookup dhcp."${reseau}" "${addrDNS}" >/dev/null 
+    then
+        echo -e "\e[32m   nslookup sur le réseau administrateur(${reseau}) réussi \e[0m"
+    else
+        echo -e "\e[31m   nslookup sur le réseau administrateur(${reseau})\e[5m échoué \e[0m"
+    fi
+    echo ""
+
+    echo "Test nslookup le réseau utilisateur:"
+
+    reseau="user"
+    if nslookup dhcp."${reseau}" "${addrDNS}" >/dev/null 
+    then
+        echo -e "\e[32m   nslookup sur le réseau utilisateur(${reseau}) réussi \e[0m"
+    else
+        echo -e "\e[31m   nslookup sur le réseau utilisateur(${reseau})\e[5m échoué \e[0m"
+    fi
+    echo ""
+
+    echo "Test nslookup le réseau Démilitarisé:"
+    reseau="dmz"
+    if nslookup web."${reseau}" "${addrDNS}" >/dev/null && nslookup bd.dmz "${addrDNS}" >/dev/null && nslookup bastionssh."${reseau}" >/dev/null 
+    then
+        echo -e "\e[32m   nslookup sur le réseau démilitarisé(${reseau}) réussi \e[0m"
+    else
+        echo -e "\e[31m   nslookup sur le réseau démilitarisé(${reseau})\e[5m échoué \e[0m"
+    fi
+    echo ""
+
+}
+
+test_disponibilite
+exit 0

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#Ce script permet de configurer un serveur web automatiquement
+
+#On fait un test de apt pour s'assurer qu'il est apte à réaliser les maj de sécurité
+apt update; apt upgrade; apt clean
+
+#On installe apache2 sur notre serveur
+apt install apache2 -y
+
+#Si apache2 est déjà lancé, on le relance, et sinon on le démarre
+systemctl restart apache2
+
+#On ajoute une règle dans le fichier nftables.conf qui permet d'ouvrir le port 80.
+echo "add rule inet filter input tcp dport 80 accept" >> /etc/nftables.conf
+
+#Si ce n'est pas le cas, on rajoute les permissions d'execution au fichier nftables.conf
+chmod +x /etc/nftables.conf
+
+#On modifie ensuite le fichier de configuration d'apache2
+echo "
+<Directory /var/www/html/>
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+" >> /etc/apache2/apache2.conf
+
+#On redémarre ensuite apache2 pour prendre en compte les changements.
+systemctl restart apache2

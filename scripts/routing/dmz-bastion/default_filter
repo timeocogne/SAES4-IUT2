@@ -1,0 +1,21 @@
+#!/usr/sbin/nft -f
+
+# script de configuration par defaut des parefeu bastionssh | dmz
+# a exécute sur la vm bastion-ssh et vm-dmz avant leur script de configuration respectif.
+# aucun parramètre
+
+#supprimer toutes les règles
+flush ruleset
+
+#accepter toutes les connexions entrantes et sortantes
+table ip filter {
+chain input {
+        type filter hook input priority 0; policy accept;
+        }
+chain output {
+        type filter hook output priority 0; policy accept;
+        }
+chain forward {
+        type filter hook forward priority 0; policy accept;
+        }
+}

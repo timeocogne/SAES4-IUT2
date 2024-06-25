@@ -1,0 +1,46 @@
+#!/bin/bash
+# pour chaque réseau privé créé un fichier de configuration en xml sous la forme vlan+"nom".xml
+# ensuite créé le réseau avec virsh, le configurer grâce au fichier et le lancer
+compteur=0
+for i in server admin user
+do
+
+
+    reseau="vlan${i}"
+
+    cat <<EOF > "${reseau}".xml
+    <network>
+    <name>${reseau}</name>
+    <forward mode='nat'>
+    <nat>
+    <port start='1024' end='65535'/>
+    </nat>
+    </forward>
+    <bridge name="virbr$((compteur+1))" stp='on' delay='0'/>
+    <domain name='vlanserver'/>
+    <ip address="192.168.$((compteur)).1" netmask='255.255.255.0'>
+    </ip>
+    </network>
+EOF
+    # éteint le réseau si il existe
+    virsh net-destroy "${reseau}"
+    
+    # détruit le réseau si il existe
+    virsh net-undefine "${reseau}"
+
+    # Définition du réseau:
+    virsh net-define "${reseau}.xml"
+
+    # Démarrage automatique du réseau
+    virsh net-autostart "${reseau}"
+
+    # Lancement du réseau:
+    virsh net-start "${reseau}"
+    compteur=$((compteur+1))	
+    
+done
+
+# Affichages des réseaux
+virsh net-list --all
+
+

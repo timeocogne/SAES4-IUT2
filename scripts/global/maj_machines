@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#Ce script permet d'installer les mises à jour et de proposer d'effectuer les mises à jour de sécurité
+#sur l'ensemble des machines de notre infrastructure.
+#Il est essentiel d'executer ce script depuis votre vm-main
+
+#Pour une meilleure lisibilité dans le script et le bash on met en couleur certains élements grace a ces variables
+vert="\033[0;32m"
+jaune="\033[1;33m"
+reset="\033[0m"
+
+# Liste de toutes les machines virtuelles à l'exception de la vm main - Modifiez au besoin !
+VM_LIST="192.168.1.2 192.168.1.3 192.168.1.12 192.168.1.66 192.168.1.67 192.168.0.2 192.168.0.3 192.168.0.4"
+
+# On démarre l'agent ssh
+eval "$(ssh-agent -s)"
+# On demande la passphrase du serveur pour pouvoir se connecter ensuite sans soucis à toutes les machines.
+ssh-add ~/.ssh/id_rsa
+
+# Parcours de toutes les machines virtuelles
+for vm in $VM_LIST; 
+do
+        echo "----------------------------"
+        echo "Connexion à $vm ..."
+        ssh "$vm" 'apt update 2>/dev/null'
+        # On utilise le paramètre -s pour laisser le choix à l'utilisateur
+        ssh "$vm" 'apt upgrade -s'
+	# S'il y a des mises à jour disponibles (au moins une), on propose à la personne de faire les maj ou non
+        if [[ $(ssh "$vm" 'apt list --upgradable 2>/dev/null' | wc -l) -gt 1 ]]
+        then
+                echo -n "${jaune}Voulez-vous effectuer les mises à jour disponibles sur $vm ? (Y/N)${reset}"
+                read -r answer
+		# On lance les maj uniquement dans le cas ou la personne saisit la touche Y, y, o ou O sur son clavier
+                if [ "$answer" != "${answer#[YyoO]}" ]; 
+                then
+                        ssh "$vm" 'apt upgrade -y'
+			echo -e "${vert}Les mises à jour ont bien été effectuées sur $vm ${reset}"
+                fi
+        else 
+                echo -e "${vert}Aucune mise à jour disponible pour la machine $vm ${reset}"
+        fi
+done
+
+# Partie mise à jour de la machine principale (main)
+apt update
+apt upgrade -s
+# S'il y a des mises à jour disponibles (au moins une), on propose à la personne de faire les maj ou non
+if [[ $(apt list --upgradable | wc -l) -gt 1 ]]
+then
+        echo -n "${jaune}Voulez-vous effectuer les mises à jour disponibles sur la vm-main ? (Y/N)${reset}"
+        read -r answer
+        if [ "$answer" != "${answer#[YyoO]}" ]; 
+        then
+                apt upgrade -y
+                echo -e "${vert}Les mises à jour ont bien été effectuées sur $vm ${reset}"
+        fi
+else 
+        echo -e "${vert}Aucune mise à jour disponible pour la vm-main${reset}"
+fi
+
+cat << EOF
+------------------------------------------------------------
+Fin des mises à jour - Toutes les machines ont été testées.
+------------------------------------------------------------
+EOF

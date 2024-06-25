@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# relachement de l'adresse ip donné
+dhclient -r > /dev/null 2>&1
+# désactivation de l'interface enPp0s1 associé au bails
+ifdown enp0s1 > /dev/null 2>&1
+
+# ---------------
+echo "debut du test"
+dhclient
+
+if ip a|grep 192.168.1.*/26 >/dev/null
+then
+	echo -e "\e[32m Le service DHCP est actif \e[0m"
+else
+	echo -e "\e[31m Le service DHCP n'est pas présent ou pas actif  \e[0m"
+fi
+

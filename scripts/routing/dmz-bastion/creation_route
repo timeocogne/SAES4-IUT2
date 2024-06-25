@@ -1,0 +1,22 @@
+#!/bin/bash
+# création des routes :
+if ip r add 192.168.0.0/24 via 192.168.14.210 >/dev/null 2>&1
+then
+	echo "Route vers le réseau utilitaire créé"
+else
+	echo "Route vers le réseau utilitaire déjà existante"
+fi
+
+if ip r add 192.168.1.64/26 via 192.168.14.210 >/dev/null 2>&1
+then
+        echo "Route vers le réseau utilisateur créé"
+else
+        echo "Route vers le réseau utilisateur existante"
+fi
+
+if ip r add 192.168.1.0/26 via 192.168.14.210 >/dev/null 2>&1
+then
+        echo "Route vers le réseau administrateur créé"
+else
+        echo "Route vers le réseau administrateur déjà existante"
+fi

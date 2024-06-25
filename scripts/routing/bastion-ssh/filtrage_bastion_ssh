@@ -1,0 +1,48 @@
+#!/usr/sbin/nft -f
+
+# script de configuration du parefeu du bastion ssh
+# a exécuté après le script defaultfilter
+# a exécuté uniquement dans la vm bastion-ssh
+# aucun parramètre
+
+# ------------- INPUT / entrant
+	# acceptation de connection ssh vers le bastion-ssh 192.168.14.222
+	add rule filter input tcp dport 22 counter accept
+
+	# acceptation de tous paquets venant de 192.168.14.222
+	add rule filter input ip saddr 192.168.14.210 counter accept
+
+	#---- Pour permettre les tests
+	# acceptation de 5 requete par seconde
+	add rule filter input ip protocol icmp icmp type echo-request limit rate 5/second counter accept
+	# acceptation de 5 requete par seconde d'udp
+	add rule filter input ip protocol udp limit rate 5/second counter accept
+
+	# acceptation des connections déjà établi
+	add rule filter input ct state established counter accept
+
+# ----------- OUTPUT / sortant
+	# autorisation de tous les paquets sortant en tcp vers le port 22
+	add rule filter output tcp dport 22 counter accept
+
+	# accepte la création de connection vers l'adresse ip 192.168.14.210
+	add rule filter output ip daddr 192.168.14.210 ct state new counter accept
+
+	# accepte la création de connection vers l'adresse ip 192.168.1.0/24
+	add rule filter output ip daddr 192.168.1.0/24 ct state new counter accept 
+
+	# accepte la création de connection vers l'adresse ip 192.168.0.0/24
+	add rule filter output ip daddr 192.168.0.0/24 ct state new counter accept
+
+	# accepte les connections déjà établi
+	add rule filter output ct state established counter accept
+
+	# pour permettre les tests
+	add rule filter output ip protocol icmp counter accept
+
+
+# politique par défaut 
+add rule filter input drop
+add rule filter output drop
+add rule filter forward drop
+

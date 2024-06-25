@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Tableau associatif avec les adresses IP des machines
+#iptable=(
+#    ['vm-main']="192.168.14.210"
+#    ['bastion-ssh']="192.168.14.222"
+#    ['dmz']="192.168.14.213"
+#)
+
+# Fonction pour tester la connectivité
+test_connectivite() {
+    echo -e "\e[34m Test de connectivité pour $1 ($2) \e[0m"
+    echo "-----------------------------"
+    echo "Test de ping :"
+    if ping -c 5 "${2}" >/dev/null
+    then
+        echo -e "\e[32m   Ping réussi \e[0m"
+    else
+        echo -e "\e[5m\e[31m   Ping échoué \e[0m"
+    fi
+    echo ""
+
+    echo "Test de traceroute :"
+    if traceroute "${2}"
+    then
+        echo -e "\e[32m   traceroute réussi \e[0m"
+    else
+        echo -e "\e[5m\e[31m    traceroute échoué \e[0m"
+    fi
+
+    echo ""
+
+    echo "Test de ssh :"
+    if nc -z -v "${2}" 22
+    then
+        echo -e "\e[32m   Le port 22 est ouvert et le service ssh fonctionne sur cette machine. \e[0m"
+    else
+        echo -e "\e[5m\e[31m   Le port 22 n'est pas ouvert ou le service ssh ne fonctionne pas sur cette machine.  \e[0m"
+    fi
+    echo ""
+}
+
+# Boucle pour tester chaque machine accessible depuis ellsworth
+#for machine in vm-main bastion-ssh dmz
+#do
+#    adresse_ip=${iptable[$machine]}
+#    test_connectivite $machine $adresse_ip
+#done
+
+# pour une raison inconnu il boucle avec le dernier element du tableau
+# peut etre qu'il garde uniquement la dernier effectation du tableau dans la varriable iptable ?
+
+test_connectivite vm-main 192.168.14.210
+test_connectivite bastion-ssh 192.168.14.222
+test_connectivite dmz 192.168.14.213
+
+exit 0
+
+
+

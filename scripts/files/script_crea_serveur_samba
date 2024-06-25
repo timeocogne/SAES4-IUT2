@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Ce script a pour but la configuration du serveur samba afin d'acceuillir 3 partages:
+# homes -> qui contient les homedir
+# usershare -> dossier partagé des utilisateurs
+# adminshare -> dossier partagés des administrateurs.
+#
+# Ce script doit être executé avec le fichier config_samba dans le repertoire /bin/
+function creationDossier () {
+	dossier=$1
+	if [[ ! -e "${dossier}" ]]; then
+        	mkdir "${dossier}"
+        	echo "répertoire ${dossier} créé"
+	else
+        	echo "répertoire ${dossier} déjà présent OK"
+	fi
+}
+
+# On met à jour la machine
+apt update -y
+
+# On installe samba
+apt install samba -y
+echo "Installation samba OK"
+
+
+# On crée un dossier samba qui contiendra tous nos fichiers
+
+creationDossier /samba
+creationDossier /samba/adminshare
+creationDossier /samba/usershare
+
+# On change les groupe des fichiers pour qu'ils appartiennent au bon groupe
+chgrp sambashare /samba
+chmod 750 /samba
+
+chgrp adminshare /samba/adminshare
+chmod 770 /samba/adminshare
+chown root:adminshare /samba/usershare
+
+
+chgrp adminshare /samba/usershare
+chmod 770 /samba/usershare
+chown root:sambashare /samba/usershare
+
+# on change le fichier de configuration de /etc/samba/smb.conf
+if [[ ! -e /etc/samba/smb_backup.conf ]];
+then
+cp /etc/samba/smb.conf /etc/samba/smb_backup.conf
+echo "Création du fichier /etc/samba/smb_backup.conf OK"
+fi
+
+cat /etc/samba/smb_backup.conf > /etc/samba/smb.conf
+cat /bin/config_samba >> /etc/samba/smb.conf
+
+echo "Fichier de configuration changé OK"
+
+# on redémarre samba pour appliquer les changements
+systemctl restart smbd
+
+echo "smbd redémarré OK"
